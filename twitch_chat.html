@@ -462,7 +462,14 @@
                 }
                 else if (tag.startsWith("display-name"))
                 {
+                    // Technically, this can be empty according to ircv3 spec and twitch docs
+                    // i've never seen it happen, but just in case, we default to their username
+                    // I don't know what the difference is
                     DisplayName = tag.substring(13);
+                    if (DisplayName === "")
+                    {
+                        DisplayName = line.slice(TagIndex + 2, line.indexOf("!", TagIndex));
+                    }
                 }
                 else if (tag.startsWith("room-id"))
                 {
