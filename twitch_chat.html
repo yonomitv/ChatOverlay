@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: rgba(0,0,0,0)!important
+            padding: 20px;
+            gap: 20px;
+        }
+        <!-- .border { -->
+            <!-- border-style: solid; -->
+        <!-- } -->
+
+        #chat-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            font-family: "Inter-Medium";
+            font-size: 28px;
+            overflow-y: visible;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            color: white;
+            margin: 24px 16px;
+        }
+        #chat-container img {
+            vertical-align: middle;
+        }
+        #chat-container a {
+            vertical-align: middle;
+        }
+        
+        .badge {
+            vertical-align: middle;
+            padding-right: 3px;
+        }
+       
+        .username {
+            font-family: "Inter-Bold";
+            font-size: 28px;
+        }
+
+        @font-face {
+            font-family: "Inter-Medium";
+            src: url("./Inter-Medium.woff2");  
+        }
+        @font-face {
+            font-family: "Inter-Bold";
+            src: url("./Inter-Bold.woff2");  
+        }
+
+        .button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: darkcyan;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: darkslategrey;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <button class="button" onclick="LeaveChat()">LeaveChat</button>
+        <button class="button" onclick="Rejoin()">Join</button>
+        <button class="button" onclick="ShowExactBorder()">Show Exact Border</button>
+        <button class="button" onclick="TestMaxMessage()">TestMaxMsg</button>
+    </div>
+    <div class="border">
+        <div id="chat-container"></div>
+    </div>
+    <script>
+    
+        // You modify these
+        
+        // Your username 
+        // eg. const username = "username";
+        const username = "";
+        
+        // You get this from creating your app on twitch
+        // eg. const client_id = "abunchofrandomcharacters1235"
+        const client_id = "";
+        
+        // Your authorized token for chat with chat:read permissions
+        //eg. const token = "adifferentbunchofrandom12456"
+        const token = "";
+        
+        // The streamer's chat you want to display.
+        // eg. const username = "username";
+        const channel = "";
+        
+        // Based on emote scale
+        // 1x, 2x, and 4x
+        // 28x28, 56x56, and 112x112
+        // if you change these 2, probably should change the font size
+        
+        //let emote_scale = 1;
+        let emote_scale = 2;
+        // let emote_scale = 4;
+        
+        // If you change the emote_scale, change this accordingly
+        // if emote_scale equals 1, emote_res equals "image_url_1x"
+        // let emote_res = "image_url_1x"
+        let emote_res = "image_url_2x"
+        //let emote_res = "image_url_4x"
+        
+        
+        // Dev stuff below 
+        const ChatterToColorCache = new Map();
+        let ws = null;
+        const bDebug = false;
+        let UniqueChatMsgID = 0;
+        const GlobalTwitchBadgesMap = new Map();
+        const ChannelTwitchBadgesMap = new Map();
+        let bHasCheckedChannelBadgess = false;
+        let bIsContainerHighlighted = false;
+        
+        // eg. [ [1,2,3,4], [5,6,7,8], ... ] 
+        // The idea is that we do note update chat-container2 with a new message 
+        // until the images for that messaage are fully loaded, if any.
+        // prevents rare moments where a message is added and it exceeds the fixed height of the chat
+        // because it gets added before it loads and the image dimensions are considered 0 when calculated
+        // a unique id is used and incremented upon each image element created
+        const ImgLoadArray = [];
+        let UniqueImageID = 0;
+        
+        const MessageDivsToAdd = [];
+        
+        function TestMaxMessage()
+        {
+            // username limit is 25 characters
+            const MaxUser = "AAAAAAAAAAAAAAAAAAAAAAAAA"
+            
+            // chat limit is 500 characters
+            const MaxMessage = "aaasddddddddddddddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            
+            
+            const newDiv = document.createElement("div");
+            
+            // max num of badges is 3+1 prediction
+            for (let i = 0; i < 4; ++i)
+            {
+                const ABadge = document.createElement("img");
+                ABadge.src = `https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/${emote_scale}`
+                ABadge.classList.add("badge");
+                newDiv.appendChild(ABadge);
+            }
+
+            const AElement = document.createElement("a");
+            AElement.appendChild(document.createTextNode(MaxUser));
+            const SpanTwo = document.createElement("a");
+            SpanTwo.appendChild(document.createTextNode(": "));
+            const SpanThree = document.createElement("a");
+            //SpanThree.appendChild(document.createTextNode("message"));
+            SpanThree.appendChild(document.createTextNode(MaxMessage));
+            
+            
+            newDiv.appendChild(AElement);
+            newDiv.appendChild(SpanTwo);
+            newDiv.appendChild(SpanThree);
+            
+            
+            const ChatElement = document.getElementById("chat-container");
+            const ChatBounds = ChatElement.getBoundingClientRect();            
+            ChatElement.appendChild(newDiv);
+            
+            const ChildrenToDelete = [];
+            for (const child of ChatElement.children)
+            {
+                const MsgBounds = child.getBoundingClientRect();
+                if (ChatBounds.y > (MsgBounds.y))
+                {
+                    console.log("Element is clipping or offscreen");
+                    ChildrenToDelete.push(child);
+                }
+            }
+            // Now check what's fully on screen and what messagess are clipping or off screen
+            for (const child of ChildrenToDelete)
+            {
+                ChatElement.removeChild(child);
+            }
+            
+        }
+
+        function AddMessage(NumToAdd)
+        {
+            //console.log(`AddMessage(${NumToAdd})`);
+            if (NumToAdd > 0)
+            {
+                
+                let fragment = document.createDocumentFragment();
+                const container = document.getElementById("chat-container");
+                while (NumToAdd > 0)
+                {
+                    NumToAdd -= 1;
+                    if (MessageDivsToAdd.length > 0)
+                    {
+                        fragment.appendChild(MessageDivsToAdd[0]);
+                        MessageDivsToAdd.shift();
+                    }
+                    else
+                    {
+                        console.log("No messages to add despite array of images loaded");
+                    }
+                }
+                // Add to chat
+                container.appendChild(fragment);
+                // now remove any clipping elements and update chat.
+                UpdateChat();
+            }
+        }
+        
+        function HandleImageLoad(ImageID)
+        {
+            return function (event) {
+                //console.log(`ImgLoadArray has ${ImgLoadArray.length}`);
+                // Look through array, find matching id, remove it from its array
+                for (let i = 0; i < ImgLoadArray.length; ++i)
+                {
+                    for (let j = 0; j < ImgLoadArray[i].length; ++j)
+                    {
+                        if (ImgLoadArray[i][j] == ImageID)
+                        {
+                            ImgLoadArray[i].splice(j, 1);
+                            break;
+                        }
+                    }
+                }
+                // add messages that are completely loaded in order
+                // stop on first one not fully loaded
+                let NumToAdd = 0;
+                while (ImgLoadArray.length > 0)
+                {
+                    if (ImgLoadArray[0].length === 0)
+                    {
+                        ImgLoadArray.shift();
+                        NumToAdd += 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                AddMessage(NumToAdd);
+            };
+        }
+        
+        function ShowExactBorder()
+        {
+            const container = document.getElementById("chat-container");
+            if (bIsContainerHighlighted === true)
+            {
+                bIsContainerHighlighted = false;
+                container.style.backgroundColor = "rgba(0,0,0,0)";
+            }
+            else
+            {
+                bIsContainerHighlighted = true;
+                container.style.backgroundColor = "darkcyan";
+            }
+            
+            
+        }
+
+        function LeaveChat()
+        {
+            if (ws !== null)
+            {
+                ws.send(`PART #${channel}`)
+                ws.close();
+            }
+        }
+        
+        function Rejoin()
+        {
+            if (ws === null)
+            {
+                if (token === "" || client_id === "")
+                {
+                    console.log("User access token or client id not defined");
+                    return;
+                }
+                ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+                ws.onopen = function(event) {
+                    ws.send(`PASS oauth:${token}\r\n`);
+                    ws.send(`NICK ${username}\r\n`);
+                    ws.send("CAP REQ :twitch.tv/tags");
+                    ws.send(`JOIN #${channel}\r\n`);
+                }
+                ws.onclose = function(event) {
+                    console.log("Closed:", event.code, event.reason);
+                    ws = null;
+                };
+                ws.onerror = (error) => console.error("WebSocket error:", error);
+                ws.onmessage = function(event) {
+                    lines = event.data.split(/\r?\n/);
+                    lines.forEach((line, index) => 
+                    {
+                        if (line.length !== 0)
+                        {
+                            if (bDebug)
+                            {
+                                console.log(line);
+                            }
+                            if (line.startsWith("PING") === true)
+                            {
+                                if (bDebug)
+                                {
+                                    console.log("PONG!")
+                                }
+                                ws.send("PONG :tmi.twitch.tv\r\n");
+                            }
+                            // should be a message
+                            else if (line.startsWith("@") === true)
+                            {
+                                AddMessageToChat(line);
+                            }
+                        }
+                    })
+                };
+            }
+            else
+            {
+                console.log("Websocket not yet closed. You should wait or refresh");
+            }
+        }
+
+        function InitBadges()
+        {
+            const url = "https://api.twitch.tv/helix/chat/badges/global";
+            
+            fetch(url, 
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Client-ID": `${client_id}`
+                }
+            })
+                .then(response => {
+                    if (!response.ok) 
+                    {
+                        throw new Error(`Response status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    for (let emote_set of data["data"])
+                    {
+                        let emote_set_array = [];
+                        for (let emote_version of emote_set["versions"])
+                        {
+                            let TempArray = [];
+                            TempArray.push(emote_version["id"]);
+                            TempArray.push(emote_version[emote_res]);
+                            emote_set_array.push(TempArray);
+                        }
+                        //TempArray.push(emote_set["versions"][0]);
+                        GlobalTwitchBadgesMap.set(emote_set["set_id"], emote_set_array);
+                    }
+                    //console.log(data);
+                })
+                .catch(error => {
+                    console.error(error.message);
+            });
+        }
+        
+        function InitChannelBadges(twitch_id)
+        {
+            const ChannelEmoteURL = `https://api.twitch.tv/helix/chat/badges?broadcaster_id=${twitch_id}`
+            fetch(ChannelEmoteURL, 
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Client-ID": `${client_id}`
+                }
+            })
+                .then(response => {
+                    if (!response.ok) 
+                    {
+                        throw new Error(`Response status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    for (let emote_set of data["data"])
+                    {
+                        let emote_set_array = [];
+                        for (let emote_version of emote_set["versions"])
+                        {
+                            let TempArray = [];
+                            TempArray.push(emote_version["id"]);
+                            TempArray.push(emote_version[emote_res]);
+                            emote_set_array.push(TempArray);
+                        }
+                        ChannelTwitchBadgesMap.set(emote_set["set_id"], emote_set_array);
+                    }
+                    //console.log(data);
+                })
+                .catch(error => {
+                    console.error(error.message);
+            });
+            //console.log(ChannelTwitchBadgesMap);
+        }
+        
+        function AddMessageToChat(line) 
+        {
+            //console.log("ADD MESSAGE TO CHAT CALLED");
+            // Parse the IRC message
+            const TagIndex = line.indexOf(" ");
+            const UserIndex = line.indexOf(" ", TagIndex + 1);
+            const CommandIndex = line.indexOf(" ", UserIndex + 1);
+            const ChannelIndex = line.indexOf(" ", CommandIndex + 1);
+
+            TagsStr = line.slice(0, TagIndex);
+            const CommandStr = line.slice(UserIndex + 1, CommandIndex);
+            if (CommandStr !== "PRIVMSG")
+            {
+                // Not a message
+                return;
+            }
+            
+            const MsgStr = line.slice(ChannelIndex + 2);
+            
+            const RealTags = TagsStr.split(";");
+            let color = null;
+            let DisplayName = null;
+            let StreamerID = null;
+            
+            const BadgeArray = [];
+            
+            const ImgLoadArrayForOneMessage = [];
+            
+            for (const tag of RealTags)
+            {
+                if (tag.startsWith("color"))
+                {
+                    color = tag.substring(6);
+                }
+                else if (tag.startsWith("display-name"))
+                {
+                    DisplayName = tag.substring(13);
+                }
+                else if (tag.startsWith("room-id"))
+                {
+                    StreamerID = parseInt(tag.substring(8));
+                }
+                else if (tag.startsWith("@badge-info"))
+                {
+                    const BadgeInfo = tag.slice(12);
+                    const BadgeInfos = BadgeInfo.split(",");
+                    for (const single_badge of BadgeInfos)
+                    {
+                        if (single_badge === "")
+                        {
+                            continue;
+                        }
+                        // ["subscriber", "42"]
+                        const single_badge_array = single_badge.split("/");
+                        BadgeArray.push(single_badge_array);
+                    }
+                }
+                else if (tag.startsWith("badges"))
+                {
+                    const BadgeInfo = tag.slice(7);
+                    const BadgeInfos = BadgeInfo.split(",");
+                    for (const single_badge of BadgeInfos)
+                    {
+                        if (single_badge === "")
+                        {
+                            continue;
+                        }
+                        if (single_badge.startsWith("subscriber"))
+                        {
+                            // it's probably wrong. badge-info should have it already and be up to date.
+                            continue;
+                        }
+                        // ["subscriber", "42"]
+                        const single_badge_array = single_badge.split("/");
+                        BadgeArray.push(single_badge_array);
+                    }
+                }
+            }
+            
+            // I don't like the branch being here
+            // but I'm not gonna change it.
+            if (bHasCheckedChannelBadgess === false)
+            {
+                InitChannelBadges(StreamerID);
+                bHasCheckedChannelBadgess = true;
+            }
+
+            
+            if (color.length < 2)
+            {
+                if (ChatterToColorCache.get(DisplayName) === undefined)
+                {
+                    // Choose a color for them
+                    ChatterToColorCache.set(DisplayName, "#0000ff");
+                    color = "#0000ff";
+                }
+            }
+            else
+            {
+                // if chatter not yet cached or if they have a new color
+                if (ChatterToColorCache.get(DisplayName) === undefined || 
+                    ChatterToColorCache.get(DisplayName) !== color)
+                {
+                    ChatterToColorCache.set(DisplayName, color);
+                }
+            }
+            
+            const newDiv = document.createElement("div");
+            
+            // Sequential order of img src's to be added after we construct the newdiv entirely
+            // necessary.
+            const ImgSrcs = [];
+            // add badges
+            for (const badge_single of BadgeArray)
+            {
+                if (ChannelTwitchBadgesMap.get(badge_single[0]) === undefined)
+                {
+                    if (GlobalTwitchBadgesMap.get(badge_single[0]) === undefined)
+                    {
+                        // This shouldn't happen
+                        // it means it's not either a global or a channel badge
+                        // I doubt this ever hits
+                        console.log("Badge not found")
+                        console.log(badge_single[0]);
+                    }
+                    else
+                    {
+                        GlobalBadgeArray = GlobalTwitchBadgesMap.get(badge_single[0]);
+                        for (const GlobalBadge of GlobalBadgeArray)
+                        {
+                            if (GlobalBadge[0] === badge_single[1])
+                            {
+                                const ABadge = document.createElement("img");
+                                ABadge.onload = HandleImageLoad(UniqueImageID);
+                                ImgLoadArrayForOneMessage.push(UniqueImageID);
+                                UniqueImageID += 1;
+                                ImgSrcs.push(GlobalBadge[1]);
+                                //ABadge.src = GlobalBadge[1];
+                                ABadge.classList.add("badge");
+                                newDiv.appendChild(ABadge);
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ChannelBadgeArray = ChannelTwitchBadgesMap.get(badge_single[0]);
+                    for (const ChannelBadge of ChannelBadgeArray)
+                    {
+                        if (ChannelBadge[0] === badge_single[1])
+                        {
+                            const ABadge = document.createElement("img");
+                            ABadge.onload = HandleImageLoad(UniqueImageID);
+                            ImgLoadArrayForOneMessage.push(UniqueImageID);
+                            UniqueImageID += 1;
+                            ImgSrcs.push(ChannelBadge[1]);
+                            //ABadge.src = ChannelBadge[1];
+                            ABadge.classList.add("badge");
+                            newDiv.appendChild(ABadge);
+                            break;
+                        }
+                    }
+                }
+            }    
+            
+            const AElement = document.createElement("a");
+            AElement.classList.add("username");
+            AElement.appendChild(document.createTextNode(DisplayName));
+            AElement.style.color = color;
+            const SpanTwo = document.createElement("a");
+            SpanTwo.appendChild(document.createTextNode(": "));
+           
+            newDiv.appendChild(AElement);
+            newDiv.appendChild(SpanTwo);
+            
+            // Create message with emotes
+            const SplitMsg = MsgStr.split(" ");
+            const SplitTags = TagsStr.split(";");
+            const EmoteArray = [];
+            
+            for (const tag of SplitTags)
+            {
+                // 7 is the length of "emotes=" if you're wondering where that came from.
+                if (tag.startsWith("emotes=") && tag.length > 7)
+                {
+                    const emote_str = tag.slice(7);
+                    const emotes_used = emote_str.split("/");
+                    for (const emote of emotes_used)
+                    {
+                        const RangeStartIndex = emote.indexOf(":");
+                        const range_str = emote.slice(RangeStartIndex + 1);
+                        const index_ranges = range_str.split(",");
+                        for (const indices of index_ranges)
+                        {
+                            const StartAndEndIndices = indices.split("-");
+                            const indexOne = parseInt(StartAndEndIndices[0]);
+                            const indexTwo = parseInt(StartAndEndIndices[1]) + 1;
+
+                            const emote_phrase = MsgStr.slice(indexOne, indexTwo);
+                            
+                            SingleEmote = []
+                            const EmoteID = emote.slice(0, RangeStartIndex);
+                            //console.log(`EMOTEID: ${EmoteID}`);
+                            SingleEmote.push(EmoteID);
+                            SingleEmote.push(emote_phrase);
+                            
+                            EmoteArray.push(SingleEmote);
+                            //console.log(`EMOTE PHRASE: ${emote_phrase}`);
+                        }
+                    }
+                }
+            }
+
+            let RandomArr = [];
+            let TempStr = "";
+            //console.log(EmoteArray);
+            for (let i = 0; i < SplitMsg.length; ++i)
+            {
+                if (EmoteArray.length > 0 && SplitMsg[i] === EmoteArray[0][1])
+                {
+                    // add TempStr before adding image
+                    if (TempStr !== "")
+                    {
+                        RandomArr.push(TempStr);
+                        const SpanTest = document.createElement("a");
+                        SpanTest.appendChild(document.createTextNode(TempStr));
+                        newDiv.appendChild(SpanTest);
+                    }
+                    //console.log(`Adding ${EmoteArray[0][1]}`);
+                    
+                    let img = document.createElement("img");
+                    ImgLoadArrayForOneMessage.push(UniqueImageID);
+                    img.onload = HandleImageLoad(UniqueImageID);
+
+                    UniqueImageID +=1;
+                    
+                    // I haven't seen a difference in dark and light mode emotes
+                    ImgSrcs.push(`https://static-cdn.jtvnw.net/emoticons/v2/${EmoteArray[0][0]}/default/light/${emote_scale}.0`);
+                    
+                    // unsure how to get the spacing right, so not doing this
+                    //img.classList.add("emote");
+
+                    newDiv.appendChild(img);
+                    EmoteArray.shift();
+                    TempStr = "";
+                }
+                else if (SplitMsg[i] === "")
+                {
+                    TempStr += " ";
+                }
+                else
+                {
+                    // add space after previous word
+                    // we split by space, so this is just adding the space back.
+                    if (i !== 0)
+                    {
+                        TempStr += " ";
+                    }
+                    TempStr += SplitMsg[i];
+                }
+            }
+            if (TempStr !== "")
+            {
+                RandomArr.push(TempStr);
+                const SpanTest = document.createElement("a");
+                SpanTest.appendChild(document.createTextNode(TempStr));
+                newDiv.appendChild(SpanTest);
+                TempStr =  "";
+            }
+            
+            MessageDivsToAdd.push(newDiv);
+            ImgLoadArray.push(ImgLoadArrayForOneMessage);
+            // Load all img src's.
+            // on the callback, will it add it to the chat.
+            // avoids image resolution not calculated in bounding box before load issue
+            
+
+            for (let i = 0; i < MessageDivsToAdd[MessageDivsToAdd.length - 1].children.length; ++i)
+            {
+                if (MessageDivsToAdd[MessageDivsToAdd.length - 1].children[i].tagName === "IMG")
+                {
+                    const ImgSrc = ImgSrcs.shift();
+                    MessageDivsToAdd[MessageDivsToAdd.length - 1].children[i].setAttribute("src", ImgSrc);
+                    // hopefully, they don't load before all are completely added so that a callback doesn't happen early
+                }
+            }
+            
+            return;
+            
+        }
+        
+        function UpdateChat() 
+        {
+            const ChatElement = document.getElementById("chat-container");
+            let ChatBounds = ChatElement.getBoundingClientRect();
+            
+            const ChildrenToDelete = [];
+            for (const child of ChatElement.children)
+            {
+                const MsgBounds = child.getBoundingClientRect();
+
+                if (ChatBounds.y > (MsgBounds.y))
+                {
+                    //console.log("Element is clipping or offscreen");
+                    
+                    ChildrenToDelete.push(child);
+                    //ChatElement.removeChild(child);
+                }
+
+            }
+
+            for (const child of ChildrenToDelete)
+            {
+                //console.log(child);
+                //console.log("Printing bounds");
+                //console.log(child.getBoundingClientRect());
+                ChatElement.removeChild(child);
+            }
+        }
+        
+
+        if (bDebug)
+        {
+            document.addEventListener("click", function(event) {
+                const clickedElement = event.target;
+                console.log("Element clicked:", clickedElement);
+                console.log(clickedElement);
+                console.log(clickedElement.getBoundingClientRect());
+            });
+        }
+        // Cache the data of global Twitch badges
+        if (token !== "" && client_id !== "")
+        {
+            InitBadges();
+        }
+        else
+        {
+            console.log("User access token or client_id not defined");
+        }
+    </script>
+</body>
+</html>
