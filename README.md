@@ -3,9 +3,9 @@ A local chat overlay for Twitch that doesn't partially cut off older chat messag
 At the moment, the web page does not automatically scale with the window size. It's a fixed 600x600 chat box using the 56x56 sized emotes from Twitch, using Inter Medium and Inter Bold fonts for text at a 28px size. To change these, you need to edit the file. 
 This program also requires setting up a developer application on Twitch and creating a token for it with chat:read permissions.
 
-# Setup
+# Local Setup
 
-1. Download the html file somewhere on your computer. You'll also need the font files included in this repo. These are from https://github.com/rsms/inter, but you can use your own fonts. You will have to modify the css in the html file to change this. If you do use the provided fonts, make sure they're in the same folder as the html file.
+1. Download the twitch_chat.html file somewhere on your computer. You'll also need the font files, Inter-Bold.woff2 and Inter-Medium.woff2, included in this repo. These are from https://github.com/rsms/inter, but you can use your own fonts. You will have to modify the css in the html file to change this. If you do use the provided fonts, make sure they're in the same folder as the html file.
 2. Now open the html file in a text editor.
 3. Scroll down to line 100 in the script section. Write your username inside the quotes
 4. Go to line 112. If you're using this chat overlay for your own streams, type your username in the quotes here, again.
