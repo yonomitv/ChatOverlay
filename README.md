@@ -25,7 +25,7 @@ https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=YOUR_CLIENT_
 Save the file, and now you can open it in your web browser or OBS. To start the chat, you need to click the join button. To leave chat, you can exit or click LeaveChat. If you're using this in obs as a local file browser source, you will need to click interact for the browser source and manually hit the join button to start it. If this is an issue, I can make it automatically join on load. 
 
 # StreamElements
-If you would like to use this chat overlay in stream elements, you can!
+Currently, does not work fully as intended. Occasionally, messages will clip, but is mostly fine. Currently, not certain on proper fix.
 1. Go to your stream overlay in StreamElements and edit your overlay.
 2. Add a new custom widget
 3. Click on settings and click open editor. It will show a window with html, css, js, fields, and data tab.
