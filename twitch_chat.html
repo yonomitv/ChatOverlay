@@ -616,7 +616,9 @@
             // Create message with emotes
             const SplitMsg = MsgStr.split(" ");
             const SplitTags = TagsStr.split(";");
+            
             const EmoteArray = [];
+            // Emotes can be given in the tags out of order
             
             for (const tag of SplitTags)
             {
@@ -624,6 +626,7 @@
                 if (tag.startsWith("emotes=") && tag.length > 7)
                 {
                     const emote_str = tag.slice(7);
+                    //console.log(emote_str);
                     const emotes_used = emote_str.split("/");
                     for (const emote of emotes_used)
                     {
@@ -656,33 +659,65 @@
             //console.log(EmoteArray);
             for (let i = 0; i < SplitMsg.length; ++i)
             {
-                if (EmoteArray.length > 0 && SplitMsg[i] === EmoteArray[0][1])
+                //console.log(`splitmsg ${SplitMsg[i]}`);
+                if (EmoteArray.length > 0)
                 {
-                    // add TempStr before adding image
-                    if (TempStr !== "")
+                    let bFoundEmote = false;
+                    for (let j = 0; j < EmoteArray.length; ++j)
                     {
-                        RandomArr.push(TempStr);
-                        const SpanTest = document.createElement("a");
-                        SpanTest.appendChild(document.createTextNode(TempStr));
-                        newDiv.appendChild(SpanTest);
+                        //console.log(j);
+                        if (SplitMsg[i] === EmoteArray[j][1])
+                        {
+                            //console.log(`Matched Emote ${SplitMsg[i]}`);
+                            // add TempStr before adding image
+                            if (TempStr !== "")
+                            {
+                                RandomArr.push(TempStr);
+                                const SpanTest = document.createElement("a");
+                                SpanTest.appendChild(document.createTextNode(TempStr));
+                                newDiv.appendChild(SpanTest);
+                            }
+                            //console.log(`Adding ${EmoteArray[0][1]}`);
+                            
+                            let img = document.createElement("img");
+                            ImgLoadArrayForOneMessage.push(UniqueImageID);
+                            img.onload = HandleImageLoad(UniqueImageID);
+
+                            UniqueImageID +=1;
+                            
+                            // I haven't seen a difference in dark and light mode emotes
+                            ImgSrcs.push(`https://static-cdn.jtvnw.net/emoticons/v2/${EmoteArray[j][0]}/default/light/${emote_scale}.0`);
+                            
+                            // unsure how to get the spacing right, so not doing this
+                            //img.classList.add("emote");
+
+                            newDiv.appendChild(img);
+                            //EmoteArray.shift();
+                            //delete EmoteArray[j];
+                            EmoteArray.splice(j, 1);
+                            TempStr = "";
+                            bFoundEmote = true;
+                            break;
+                        }
                     }
-                    //console.log(`Adding ${EmoteArray[0][1]}`);
-                    
-                    let img = document.createElement("img");
-                    ImgLoadArrayForOneMessage.push(UniqueImageID);
-                    img.onload = HandleImageLoad(UniqueImageID);
-
-                    UniqueImageID +=1;
-                    
-                    // I haven't seen a difference in dark and light mode emotes
-                    ImgSrcs.push(`https://static-cdn.jtvnw.net/emoticons/v2/${EmoteArray[0][0]}/default/light/${emote_scale}.0`);
-                    
-                    // unsure how to get the spacing right, so not doing this
-                    //img.classList.add("emote");
-
-                    newDiv.appendChild(img);
-                    EmoteArray.shift();
-                    TempStr = "";
+                    // check if we found any emote if not handle accordingly                     
+                    if (bFoundEmote === false)
+                    {
+                        if (SplitMsg[i] === "")
+                        {
+                            TempStr += " ";
+                        }
+                        else
+                        {
+                            // add space after previous word
+                            // we split by space, so this is just adding the space back.
+                            if (i !== 0)
+                            {
+                                TempStr += " ";
+                            }
+                            TempStr += SplitMsg[i];
+                        }
+                    }
                 }
                 else if (SplitMsg[i] === "")
                 {
@@ -699,6 +734,7 @@
                     TempStr += SplitMsg[i];
                 }
             }
+            
             if (TempStr !== "")
             {
                 RandomArr.push(TempStr);
