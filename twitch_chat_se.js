@@ -314,8 +314,8 @@ window.addEventListener('onEventReceived', function (obj) {
     }
 });
 
-
+/*
 window.addEventListener('onWidgetLoad', function(obj) {
     TestMessageEvent();
     return;
-});
+});*/
