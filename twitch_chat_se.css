@@ -1,0 +1,54 @@
+* {
+    
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: rgba(0,0,0,0)!important
+    padding: 20px;
+    gap: 20px;
+}
+#chat-container {
+    width: 600px;
+    height: 600px;
+
+    font-family: "Inter", sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    font-style: normal;
+
+    overflow-y: visible;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    color: white;
+}
+#chat-container img {
+    vertical-align: middle;
+}
+#chat-container a {
+    vertical-align: middle;
+}
+.chat-entry {
+    padding: 4px 16px;
+}
+
+.badge {
+    vertical-align: middle;
+    padding-right: 3px;
+}
+
+.username {
+    font-family: "Inter", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    font-style: normal;
+}

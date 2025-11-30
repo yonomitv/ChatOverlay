@@ -46,7 +46,9 @@
         #chat-container a {
             vertical-align: middle;
         }
-        
+        .chat-entry {
+            padding: 4px 16px;
+        }
         .badge {
             vertical-align: middle;
             padding-right: 3px;
@@ -158,6 +160,7 @@
             
             
             const newDiv = document.createElement("div");
+            
             
             // max num of badges is 3+1 prediction
             for (let i = 0; i < 4; ++i)
@@ -541,6 +544,7 @@
             }
             
             const newDiv = document.createElement("div");
+            newDiv.classList.add("chat-entry");
             
             // Sequential order of img src's to be added after we construct the newdiv entirely
             // necessary.
