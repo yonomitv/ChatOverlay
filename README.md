@@ -25,13 +25,14 @@ https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=YOUR_CLIENT_
 Save the file, and now you can open it in your web browser or OBS. To start the chat, you need to click the join button. To leave chat, you can exit or click LeaveChat. If you're using this in obs as a local file browser source, you will need to click interact for the browser source and manually hit the join button to start it. If this is an issue, I can make it automatically join on load. 
 
 # StreamElements
-Currently, does not work fully as intended. Occasionally, messages will clip, but is mostly fine. Currently, not certain on proper fix.
+Should currnently work without issues. If any issues are encountered, I recommend you use the standalone version and not use streamelements. Streamelements required some workarounds to account for its quirks and I can't guarantee everything is accounted for. 
 1. Go to your stream overlay in StreamElements and edit your overlay.
 2. Add a new custom widget
-3. Click on settings and click open editor. It will show a window with html, css, js, fields, and data tab.
-4. Go back to this repository. Click on the html file with the _se at the end of the file name.
-5. Copy paste this into the html tab. This means, delete everything in the tab and relpace it with the code from this repository.
-6. Do the same for the css file with the _se ending. Copy paste it into the css tab removing everything that was there before
-7. Do the same for the js file with the _se ending. Copy paste it into the css tab removing everything that was there before.
-8. Now to be safe, also delete everything in the fields and data tab.
-9. After this, the chat widget should be good to go. You should be able to live test it by typing in your chat. 
+3. Make sure the widget is selected and go to the position size and style tab. Set the width and height to 600 each.
+4. Click on settings and click open editor. It will show a window with html, css, js, fields, and data tab.
+5. Go back to this repository. Click on the html file with the _se at the end of the file name.
+6. Copy paste this into the html tab. This means, delete everything in the tab and relpace it with the code from this repository.
+7. Do the same for the css file with the _se ending. Copy paste it into the css tab removing everything that was there before
+8. Do the same for the js file with the _se ending. Copy paste it into the css tab removing everything that was there before.
+9. Now to be safe, also delete everything in the fields and data tab.
+10. After this, the chat widget should be good to go. You should be able to live test it by typing in your chat. 
