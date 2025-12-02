@@ -1,14 +1,19 @@
+// You probably don't need to adjust anything here
+// If you're using a different font and want to adjust it, adjust it in css
+// You can adjust the emote and badge size here. They are the same size as given by twitch currently
+// no scaling
+// So keep font size to 14px, 28px, or 56px and set emote and badge scale accordingly
+
 // 1, 2, or 4. 4 grabs the highest quality
-const EMOTE_SCALE = 4; 
+// Does not scale, so be careful if you adjust font_size
+const EMOTE_SCALE = 2; 
 
-// 14px, 28px, and 56px would natively match the emotes with the correct 1:2 ratio
-// Badge and emotes will scale accordingly to this
-// REMEMBER TO CHANGE THE FONT SIZE IN THE CSS TAB!!!
-const FONT_SIZE = 28;
+// 1, 2, or 3. 3 grabs the highest quality
+// Does not scale, so be careful if you adjust font_size
+const BADGE_SCALE = 2;
 
-const GlobalTwitchBadgesMap = new Map();
-const ChannelTwitchBadgesMap = new Map();
-//let bIsContainerHighlighted = false;
+
+// dev stuff
 const ImgLoadArray = [];
 let UniqueImageID = 0;
 const MessageDivsToAdd = [];
@@ -51,7 +56,7 @@ function TestMessageEvent()
                         }
                     ],
                     "channel": "channelname",
-                    "text": "Test Kappa test",
+                    "text": "Test Kappa test longggggggggggggggggg",
                     "isAction": false,
                     "emotes": [
                         {
@@ -77,6 +82,33 @@ function TestMessageEvent()
     window.dispatchEvent(message);
 }
 
+function UpdateTrueChat()
+{
+    // rerun the culling logic on chat container 1
+    const ChatElement = document.getElementById("chat-container");
+    let ChatBounds = ChatElement.getBoundingClientRect();
+    const ClonedChat = ChatElement.cloneNode(true);
+    const TrueChat = document.getElementById('chat-container2');
+
+    for (let i = ChatElement.children.length - 1; i >= 0; i--)
+    {
+        const MsgBounds = ChatElement.children[i].getBoundingClientRect();
+        
+        //console.log(MsgBounds);
+        // delete the message from DOM and clone
+        if (ChatBounds.y > (MsgBounds.y))
+        {
+            //console.log("Element is clipping or offscreen");
+            ClonedChat.removeChild(ClonedChat.children[i]);
+            ChatElement.removeChild(ChatElement.children[i]);
+        }
+
+    }
+
+    // update chat 2 which should not be clipping ever
+    TrueChat.replaceChildren(...ClonedChat.childNodes);
+}
+
 function UpdateChat() 
 {
     const ChatElement = document.getElementById("chat-container");
@@ -86,7 +118,14 @@ function UpdateChat()
     for (const child of ChatElement.children)
     {
         const MsgBounds = child.getBoundingClientRect();
-
+        for (child_child of child.children)
+        {
+            const childBounds = child_child.getBoundingClientRect();
+            //console.log(child_child);
+            //console.log(childBounds);
+        }
+        
+        //console.log(MsgBounds);
         if (ChatBounds.y > (MsgBounds.y))
         {
             //console.log("Element is clipping or offscreen");
@@ -104,8 +143,12 @@ function UpdateChat()
         //console.log(child.getBoundingClientRect());
         ChatElement.removeChild(child);
     }
-}
 
+    setTimeout(UpdateTrueChat, 10);
+    //const ClonedChat = ChatElement.cloneNode(true);
+    //const TrueChat = document.getElementById('chat-container2');
+    //TrueChat.replaceChildren(...ClonedChat.childNodes);
+}
 
 function AddMessage(NumToAdd)
 {
@@ -135,10 +178,17 @@ function AddMessage(NumToAdd)
     }
 }
 
-function HandleImageLoad(ImageID)
+// I don't think this is necessary, but just in case. 
+// streamelements weirdly loads image at a delay despite it being techincally loaded
+function HandleImageLoadInterval(ImageID, img_element, bIsBadge)
 {
-    return function (event) {
-        //console.log(`ImgLoadArray has ${ImgLoadArray.length}`);
+    //console.log(`HandleImageLoadInterval: ${ImageID}, ${img_element}`);
+    if (img_element.complete === false)
+    {
+        setTimeout(HandleImageLoadInterval, 50, ImageID, img_element, bIsBadge);
+    }
+    else
+    {
         // Look through array, find matching id, remove it from its array
         for (let i = 0; i < ImgLoadArray.length; ++i)
         {
@@ -166,9 +216,73 @@ function HandleImageLoad(ImageID)
                 break;
             }
         }
+        // badge url's are irregular, hard to program without using twitch api
+        // we manually set the size.
+        if (bIsBadge)
+        {
+            img_element.height = 18 * BADGE_SCALE;
+            img_element.width = 18 * BADGE_SCALE;
+        }
         AddMessage(NumToAdd);
+    }
+}
+
+function HandleImageLoad(ImageID, img_element, bIsBadge)
+{
+    return function (event) {
+        if (img_element.complete === true)
+        {
+            //console.log(`ImgLoadArray has ${ImgLoadArray.length}`);
+            // Look through array, find matching id, remove it from its array
+            for (let i = 0; i < ImgLoadArray.length; ++i)
+            {
+                for (let j = 0; j < ImgLoadArray[i].length; ++j)
+                {
+                    if (ImgLoadArray[i][j] == ImageID)
+                    {
+                        ImgLoadArray[i].splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            // add messages that are completely loaded in order
+            // stop on first one not fully loaded
+            let NumToAdd = 0;
+            while (ImgLoadArray.length > 0)
+            {
+                if (ImgLoadArray[0].length === 0)
+                {
+                    ImgLoadArray.shift();
+                    NumToAdd += 1;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // scale image correctly now that it's loaded
+            // images can be max size, but scaled smaller depending on config
+            if (bIsBadge)
+            {
+                // badge url's are irregular, hard to program without using twitch api
+                // we manually set the size.
+                img_element.height = 18 * BADGE_SCALE;
+                img_element.width = 18 * BADGE_SCALE;
+            }
+
+            
+            AddMessage(NumToAdd);
+        }
+        // weird that onload completed but the image isn't done loading
+        // call check function
+        else
+        {
+            setTimeout(HandleImageLoadInterval, 50, ImageID, img_element, bIsBadge);
+        }
     };
 }
+
 
 window.addEventListener('onEventReceived', function (obj) {
     if (!obj.detail.event) {
@@ -192,7 +306,7 @@ window.addEventListener('onEventReceived', function (obj) {
                 badges: data.badges || [],
                 emotes: data.emotes || []
             };
-            
+
             const newDiv = document.createElement("div");
             newDiv.classList.add("chat-entry");
             // handle badges
@@ -203,9 +317,9 @@ window.addEventListener('onEventReceived', function (obj) {
             for (const badge_single of message.badges)
             {
                 const ABadge = document.createElement("img");
-                ABadge.height = FONT_SIZE / 14 * 18;
-                ABadge.width = FONT_SIZE / 14 * 18;
-                ABadge.onload = HandleImageLoad(UniqueImageID);
+                //ABadge.height = FONT_SIZE / 14 * 18;
+                //ABadge.width = FONT_SIZE / 14 * 18;
+                ABadge.onload = HandleImageLoad(UniqueImageID, ABadge, true);
                 ImgLoadArrayForOneMessage.push(UniqueImageID);
                 UniqueImageID += 1;
                 ImgSrcs.push(badge_single.url);
@@ -229,6 +343,7 @@ window.addEventListener('onEventReceived', function (obj) {
             // message
             // handle emotes
             const EmoteArray = [];
+            //console.log(`UniqueImageID: ${UniqueImageID}`);
 
             for (const emote_single of message.emotes)
             {
@@ -256,10 +371,10 @@ window.addEventListener('onEventReceived', function (obj) {
                     //console.log(`Adding ${EmoteArray[0][1]}`);
                     
                     let img = document.createElement("img");
-                    img.height = FONT_SIZE * 2;
-                    img.width = FONT_SIZE * 2;
+                    //img.height = FONT_SIZE * 2;
+                    //img.width = FONT_SIZE * 2;
                     ImgLoadArrayForOneMessage.push(UniqueImageID);
-                    img.onload = HandleImageLoad(UniqueImageID);
+                    img.onload = HandleImageLoad(UniqueImageID, img, false);
 
                     UniqueImageID += 1;
                                         
@@ -314,8 +429,10 @@ window.addEventListener('onEventReceived', function (obj) {
     }
 });
 
-/*
+
 window.addEventListener('onWidgetLoad', function(obj) {
-    TestMessageEvent();
+
+    //TestMessageEvent();
+
     return;
-});*/
+});
