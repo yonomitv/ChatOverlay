@@ -4,20 +4,20 @@
     box-sizing: border-box;
 }
 body {
-    width: 600px;
     display: flex;
     flex-direction: row;
     justify-content: left;
     align-items: center;
     gap: 50px;
     min-height: 100vh;
+    min-width: 100vw;
     background-color: rgba(0,0,0,0)!important
     
 }
 #chat-container {
     position: fixed;
-    width: 600px;
-    height: 600px;
+    width: 100vw;
+    height: 100vh;
     font-family: "Inter", sans-serif;
     font-size: 28px;
     font-weight: 500;
@@ -31,7 +31,7 @@ body {
     overflow-wrap: anywhere;
     color: white;
     background-color: aqua;
-    transform: translateX(100%);
+    transform: translateX(100vw);
 }
 #chat-container img {
     vertical-align: middle;
@@ -41,8 +41,8 @@ body {
 }
 
 #chat-container2 {
-    width: 600px;
-    height: 600px;
+    width: 100vw;
+    height: 100vh;
 
     font-family: "Inter", sans-serif;
     font-size: 28px;
@@ -66,6 +66,7 @@ body {
 
 .chat-entry {
     padding: 4px 16px;
+    word-break: break-word;
 }
 
 .badge {
@@ -78,4 +79,6 @@ body {
     font-size: 28px;
     font-weight: 700;
     font-style: normal;
+    word-break: break-all;
 }
+
